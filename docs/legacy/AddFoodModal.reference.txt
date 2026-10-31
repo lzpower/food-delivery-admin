@@ -1,0 +1,405 @@
+import React, { useEffect, useState } from "react";
+import { supabase } from "../services/supabase";
+import { Store, Utensils, Settings } from "lucide-react";
+
+interface AddFoodModalProps {
+  onAdded: () => void;
+}
+
+export function AddFoodModal({ onAdded }: AddFoodModalProps) {
+  const [activeSubTab, setActiveSubTab] = useState<"add-food" | "options">("add-food");
+
+  // Dữ liệu chung load từ Database
+  const [restaurants, setRestaurants] = useState<{ id: string; name: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [foods, setFoods] = useState<{ id: string; name: string; restaurant_id: string }[]>([]);
+  const [optionGroups, setOptionGroups] = useState<{ id: string; name: string }[]>([]);
+
+  // Trạng thái chọn chung
+  const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [selectedFoodId, setSelectedFoodId] = useState("");
+  const [selectedGroupId, setSelectedGroupId] = useState("");
+
+  // Form Thêm món ăn
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [originalPrice, setOriginalPrice] = useState("");
+  const [desc, setDesc] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // Form Thêm nhóm tùy chọn (Option Group)
+  const [groupName, setGroupName] = useState("");
+  const [isRequired, setIsRequired] = useState(false);
+  const [allowMultiple, setAllowMultiple] = useState(false);
+
+  // Form Thêm lựa chọn chi tiết (Option Item)
+  const [itemName, setItemName] = useState("");
+  const [extraPrice, setExtraPrice] = useState("");
+
+  // Tải dữ liệu ban đầu
+  const loadInitialData = async () => {
+    const { data: restData } = await (supabase as any)
+      .from("restaurants")
+      .select("id, name")
+      .order("name");
+    if (restData) {
+      setRestaurants(restData);
+      if (restData.length > 0 && !selectedRestaurantId) {
+        setSelectedRestaurantId(restData[0].id);
+      }
+    }
+
+    const { data: catData } = await (supabase as any)
+      .from("categories")
+      .select("id, name")
+      .order("name");
+    if (catData) {
+      setCategories(catData);
+      if (catData.length > 0 && !selectedCategoryId) {
+        setSelectedCategoryId(catData[0].id);
+      }
+    }
+
+    const { data: foodData } = await (supabase as any)
+      .from("foods")
+      .select("id, name, restaurant_id")
+      .order("name");
+    if (foodData) {
+      setFoods(foodData);
+      if (foodData.length > 0) setSelectedFoodId(foodData[0].id);
+    }
+  };
+
+  // Tải danh sách nhóm tùy chọn dựa trên món ăn đang chọn
+  const loadOptionGroups = async (foodId: string) => {
+    if (!foodId) return;
+    const { data } = await (supabase as any)
+      .from("food_option_groups")
+      .select("id, name")
+      .eq("food_id", foodId);
+    if (data) {
+      setOptionGroups(data);
+      if (data.length > 0) setSelectedGroupId(data[0].id);
+      else setSelectedGroupId("");
+    }
+  };
+
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  useEffect(() => {
+    if (selectedFoodId) {
+      loadOptionGroups(selectedFoodId);
+    }
+  }, [selectedFoodId]);
+
+  // Thêm Món ăn mới
+  const handleAddFood = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await (supabase as any).from("foods").insert({
+      restaurant_id: selectedRestaurantId,
+      category_id: selectedCategoryId || null,
+      name,
+      price: parseFloat(price),
+      original_price: originalPrice ? parseFloat(originalPrice) : null,
+      description: desc,
+      is_available: true,
+      image_url: imageUrl || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=300",
+    });
+
+    setLoading(false);
+    if (error) {
+      alert("Lỗi thêm món: " + error.message);
+    } else {
+      alert(`Đã thêm món "${name}" thành công!`);
+      setName("");
+      setPrice("");
+      setOriginalPrice("");
+      setDesc("");
+      setImageUrl("");
+      await loadInitialData();
+      onAdded();
+    }
+  };
+
+  // Thêm Nhóm Tùy Chọn (Size, Toppings, v.v.)
+  const handleAddGroup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFoodId) return alert("Vui lòng chọn món ăn!");
+    setLoading(true);
+
+    const { error } = await (supabase as any).from("food_option_groups").insert({
+      food_id: selectedFoodId,
+      name: groupName,
+      is_required: isRequired,
+      allow_multiple: allowMultiple,
+    });
+
+    setLoading(false);
+    if (error) {
+      alert("Lỗi thêm nhóm tùy chọn: " + error.message);
+    } else {
+      alert(`Đã thêm nhóm "${groupName}" thành công!`);
+      setGroupName("");
+      setIsRequired(false);
+      setAllowMultiple(false);
+      await loadOptionGroups(selectedFoodId);
+    }
+  };
+
+  // Thêm lựa chọn chi tiết kèm giá cộng thêm (VND)
+  const handleAddItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedGroupId) return alert("Vui lòng chọn nhóm tùy chọn!");
+    setLoading(true);
+
+    const { error } = await (supabase as any).from("food_option_items").insert({
+      group_id: selectedGroupId,
+      name: itemName,
+      extra_price: parseFloat(extraPrice || "0"),
+    });
+
+    setLoading(false);
+    if (error) {
+      alert("Lỗi thêm tùy chọn chi tiết: " + error.message);
+    } else {
+      alert(`Đã thêm tùy chọn "${itemName}" thành công!`);
+      setItemName("");
+      setExtraPrice("");
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* NÚT CHUYỂN PHÂN HỆ */}
+      <div className="flex bg-gray-100 p-1.5 rounded-xl border border-gray-200">
+        <button
+          onClick={() => setActiveSubTab("add-food")}
+          className={`flex-1 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+            activeSubTab === "add-food" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          <Utensils className="w-4 h-4" /> Thêm Món Mới
+        </button>
+        <button
+          onClick={() => setActiveSubTab("options")}
+          className={`flex-1 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+            activeSubTab === "options" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          <Settings className="w-4 h-4" /> Cấu Hình Tùy Chọn (Size/Topping)
+        </button>
+      </div>
+
+      {activeSubTab === "add-food" ? (
+        <>
+          {/* FORM 1: CHỌN NHÀ HÀNG QUẢN LÝ */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex items-center gap-2 text-slate-800 font-bold text-lg mb-4">
+              <Store className="text-orange-500 w-5 h-5" />
+              <span>Chọn Nhà Hàng Của Món Ăn</span>
+            </div>
+            <select
+              className="border border-gray-200 p-3 w-full rounded-xl bg-gray-50 font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              value={selectedRestaurantId}
+              onChange={(e) => setSelectedRestaurantId(e.target.value)}
+            >
+              {restaurants.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* FORM 2: NHẬP THÔNG TIN MÓN ĂN */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <form onSubmit={handleAddFood} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Tên món ăn *</label>
+                <input
+                  className="border border-gray-200 p-2.5 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                  placeholder="Ví dụ: Gà Rán Cay Giòn"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Giá bán (VND) *</label>
+                  <input
+                    type="number"
+                    className="border border-gray-200 p-2.5 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                    placeholder="65000"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Giá gốc (VND)</label>
+                  <input
+                    type="number"
+                    className="border border-gray-200 p-2.5 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                    placeholder="85000"
+                    value={originalPrice}
+                    onChange={(e) => setOriginalPrice(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Danh mục món ăn</label>
+                <select
+                  className="border border-gray-200 p-2.5 w-full rounded-lg bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  value={selectedCategoryId}
+                  onChange={(e) => setSelectedCategoryId(e.target.value)}
+                >
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Mô tả món</label>
+                <textarea
+                  className="border border-gray-200 p-2.5 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                  rows={2}
+                  placeholder="Mô tả nguyên liệu, hương vị..."
+                  value={desc}
+                  onChange={(e) => setDesc(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Đường dẫn hình ảnh (URL)</label>
+                <input
+                  className="border border-gray-200 p-2.5 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                  placeholder="https://..."
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition-colors shadow-sm"
+              >
+                {loading ? "Đang lưu..." : "Xác Nhận Thêm Món Vào Menu"}
+              </button>
+            </form>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* QUẢN LÝ TÙY CHỌN DÀNH CHO CHỦ QUÁN */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+            <h3 className="font-bold text-slate-800 text-base">Bước 1: Chọn món ăn cần cấu hình</h3>
+            <select
+              className="border border-gray-200 p-2.5 w-full rounded-lg bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              value={selectedFoodId}
+              onChange={(e) => setSelectedFoodId(e.target.value)}
+            >
+              {foods.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* THÊM NHÓM TÙY CHỌN */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h4 className="font-bold text-slate-800 text-sm mb-3">Tạo Nhóm Tùy Chọn Mới (Ví dụ: Topping)</h4>
+              <form onSubmit={handleAddGroup} className="space-y-3">
+                <input
+                  className="border p-2.5 w-full rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
+                  placeholder="Tên nhóm (ví dụ: Chọn Size, Topping...)"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  required
+                />
+                <div className="flex items-center gap-4 py-1 text-sm">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isRequired}
+                      onChange={(e) => setIsRequired(e.target.checked)}
+                      className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                    />
+                    <span>Bắt buộc chọn?</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={allowMultiple}
+                      onChange={(e) => setAllowMultiple(e.target.checked)}
+                      className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                    />
+                    <span>Được chọn nhiều?</span>
+                  </label>
+                </div>
+                <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white font-bold py-2 rounded-lg text-xs hover:bg-slate-800">
+                  + Thêm Nhóm Tùy Chọn
+                </button>
+              </form>
+            </div>
+
+            {/* THÊM LỰA CHỌN CHI TIẾT */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h4 className="font-bold text-slate-800 text-sm mb-3">Tạo Lựa Chọn Chi Tiết (Ví dụ: Trân châu)</h4>
+              <form onSubmit={handleAddItem} className="space-y-3">
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">Chọn nhóm tùy chọn đích:</label>
+                  <select
+                    className="border border-gray-200 p-2 w-full rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-orange-500"
+                    value={selectedGroupId}
+                    onChange={(e) => setSelectedGroupId(e.target.value)}
+                  >
+                    {optionGroups.length === 0 ? (
+                      <option value="">(Món này chưa có nhóm tùy chọn nào)</option>
+                    ) : (
+                      optionGroups.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+                <input
+                  className="border p-2.5 w-full rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
+                  placeholder="Tên lựa chọn (ví dụ: Trân châu đen, Size L)"
+                  value={itemName}
+                  onChange={(e) => setItemName(e.target.value)}
+                  required
+                />
+                <input
+                  type="number"
+                  className="border p-2.5 w-full rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
+                  placeholder="Giá cộng thêm (VND - ví dụ: 5000)"
+                  value={extraPrice}
+                  onChange={(e) => setExtraPrice(e.target.value)}
+                />
+                <button type="submit" disabled={loading || !selectedGroupId} className="w-full bg-slate-900 text-white font-bold py-2 rounded-lg text-xs hover:bg-slate-800 disabled:opacity-50">
+                  + Thêm Lựa Chọn Chi Tiết
+                </button>
+              </form>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
