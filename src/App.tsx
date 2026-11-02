@@ -6,6 +6,7 @@ import { OrderManagement } from "./components/OrderManagement";
 import { DriverManagement } from "./components/DriverManagement";
 import { AddFoodModal } from "./components/AddFoodModal";
 import { RestaurantManagement } from './components/RestaurantManagement';
+import { VoucherManagement } from './components/VoucherManagement';
 import { AdminShell } from './components/AdminShell';
 import type { AdminPage } from './components/AdminShell';
 import { ArrowRight, ShieldCheck, Eye, EyeOff, Utensils, Bike, Store } from 'lucide-react';
@@ -39,6 +40,7 @@ function VerifiedAdmin({ session }: { session: Session }) {
     drivers: verified ? <DriverManagement /> : null,
     restaurants: verified ? <RestaurantManagement /> : null,
     foods: verified ? <AddFoodModal /> : null,
+    vouchers: verified ? <VoucherManagement /> : null,
   }} alert={error ? <div role="alert" className="mb-5 rounded-xl bg-red-50 p-4 text-red-700">{error}<button className="ml-4 underline" onClick={() => { setError(''); setRetry(x => x + 1); }}>Thử lại</button></div> : null} />;
 }
 export default function App() {

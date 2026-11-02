@@ -1,13 +1,14 @@
-import { Bike, Store, Utensils, LayoutDashboard, LogOut, ChevronRight, ShieldCheck, ArrowUpRight, Menu, X, PanelsTopLeft } from 'lucide-react';
+import { Bike, Store, Utensils, LayoutDashboard, LogOut, ChevronRight, ShieldCheck, ArrowUpRight, Menu, X, PanelsTopLeft, Ticket } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { VercelTabs } from './ui/vercel-tabs';
-export type AdminPage = 'orders' | 'drivers' | 'restaurants' | 'foods';
+export type AdminPage = 'orders' | 'drivers' | 'restaurants' | 'foods' | 'vouchers';
 const pages = [
   { id: 'orders', label: 'Điều phối đơn hàng', short: 'Đơn hàng', icon: LayoutDashboard, description: 'Mỗi đơn hàng, một hành trình trọn vẹn.' },
   { id: 'drivers', label: 'Quản lý tài xế', short: 'Tài xế', icon: Bike, description: 'Kết nối đội ngũ, sẵn sàng cho những chuyến giao.' },
   { id: 'restaurants', label: 'Nhà hàng đối tác', short: 'Nhà hàng', icon: Store, description: 'Quán ngon hội tụ trong cùng một không gian.' },
   { id: 'foods', label: 'Thực đơn & tùy chọn', short: 'Thực đơn', icon: Utensils, description: 'Chăm chút từng món, từ hình ảnh đến hương vị.' },
+  { id: 'vouchers', label: 'Khuyến mãi · Voucher', short: 'Voucher', icon: Ticket, description: 'Tạo và bật tắt mã giảm giá cho khách hàng.' },
 ] as const;
 export function AdminShell({ page, onPage, email, onLogout, alert, panels }: { page: AdminPage; onPage: (p: AdminPage) => void; email: string; onLogout: () => void; alert: ReactNode; panels: Record<AdminPage, ReactNode> }) {
   const [menu, setMenu] = useState(false); const selected = pages.find(p => p.id === page)!;

@@ -1,4 +1,5 @@
 import { installCatalog } from './catalog.mjs';
+import { installDiscovery } from './discovery.mjs';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const text = (v, max) => typeof v === 'string' && v.trim().length <= max ? v.trim() : '';
 export function normalizePhone(value) {
@@ -21,6 +22,7 @@ export function foodPayload(body) {
 }
 export function installManagement(app, db, databaseError, media) {
   installCatalog(app, db, databaseError, media, foodPayload);
+  installDiscovery(app, db, databaseError);
   async function provision(user) {
     // Only accounts explicitly created by this backend may use the retry route.
     if (user.app_metadata?.subifood_driver_provisioning !== true) throw Error('not-provisioned');

@@ -470,31 +470,37 @@ export interface Database {
           id: string;
           restaurant_id: string | null;
           code: string;
+          applies_to: 'food' | 'shipping';
           discount_type: string;
           discount_value: number;
           min_order_value: number;
           expiry_date: string | null;
           is_active: boolean;
+          reward_owner_id: string | null;
         };
         Insert: {
           id?: string;
           restaurant_id?: string | null;
           code: string;
+          applies_to?: 'food' | 'shipping';
           discount_type: string;
           discount_value: number;
           min_order_value?: number;
           expiry_date?: string | null;
           is_active?: boolean;
+          reward_owner_id?: string | null;
         };
         Update: {
           id?: string;
           restaurant_id?: string | null;
           code?: string;
+          applies_to?: 'food' | 'shipping';
           discount_type?: string;
           discount_value?: number;
           min_order_value?: number;
           expiry_date?: string | null;
           is_active?: boolean;
+          reward_owner_id?: string | null;
         };
       };
     };

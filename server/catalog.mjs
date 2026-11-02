@@ -43,6 +43,21 @@ export function installCatalog(app, db, databaseError, media, foodPayload) {
     const { data, error } = await db.from('restaurants').select('id,name,address,latitude,longitude,image_url,is_open,is_active,opening_hours,promo_tags').order('created_at', { ascending: false }).limit(500);
     if (error) return databaseError(res, error); res.json(data || []);
   });
+  const onlyBoolean = (body, key) => !!body && typeof body === 'object' && !Array.isArray(body) && Object.keys(body).length === 1 && typeof body[key] === 'boolean';
+  app.patch('/api/admin/restaurants/:id/open', async (req, res) => {
+    if (!uuid.test(req.params.id) || !onlyBoolean(req.body, 'is_open')) return res.status(400).json({ error: 'Thông tin mở/đóng cửa không hợp lệ.' });
+    const { data, error } = await db.from('restaurants').update({ is_open: req.body.is_open }).eq('id', req.params.id).select('id,is_open').maybeSingle();
+    if (error) return databaseError(res, error);
+    if (!data) return res.status(404).json({ error: 'Không tìm thấy nhà hàng. Hãy tải lại danh sách.' });
+    res.json({ id: data.id, is_open: data.is_open, message: data.is_open ? 'Đã mở cửa nhà hàng.' : 'Đã đóng cửa nhà hàng.' });
+  });
+  app.patch('/api/admin/foods/:id/availability', async (req, res) => {
+    if (!uuid.test(req.params.id) || !onlyBoolean(req.body, 'is_available')) return res.status(400).json({ error: 'Thông tin trạng thái món không hợp lệ.' });
+    const { data, error } = await db.from('foods').update({ is_available: req.body.is_available }).eq('id', req.params.id).select('id,is_available').maybeSingle();
+    if (error) return databaseError(res, error);
+    if (!data) return res.status(404).json({ error: 'Không tìm thấy món. Hãy tải lại danh sách.' });
+    res.json({ id: data.id, is_available: data.is_available, message: data.is_available ? 'Món đã được mở bán lại.' : 'Đã báo hết món.' });
+  });
   app.post('/api/admin/categories', async (req, res) => {
     if (!validText(req.body?.name, 1, 100)) return res.status(400).json({ error: 'Tên danh mục cần 1–100 ký tự.' });
     const name = req.body.name.trim();

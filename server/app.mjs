@@ -1,5 +1,6 @@
 import express from "express";
 import { installManagement } from "./management.mjs";
+import { installVouchers } from "./vouchers.mjs";
 
 export const uuid =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -169,6 +170,7 @@ export function createAdminApp({ authClient, db, admins, media }) {
     });
   });
   installManagement(app, db, databaseError, media);
+  installVouchers(app, db);
   app.use("/api", (_req, res) =>
     res.status(404).json({ error: "Không có API này." }),
   );

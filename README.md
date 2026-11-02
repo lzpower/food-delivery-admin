@@ -93,3 +93,9 @@ Test API dùng client Supabase giả lập: kiểm tra 401/403, UUID, RPC phân 
 Khi triển khai, cần backend Node thật và reverse proxy cùng domain: /api tới backend, đường dẫn khác tới frontend; bật HTTPS. Chỉ upload dist lên static hosting sẽ không có API. Cấu hình bind/port theo hạ tầng, giữ secret và ADMIN_USER_IDS trong môi trường server.
 
 Không log token, password hoặc key. API dùng no-store. Supabase logout có thể không vô hiệu ngay JWT đang còn hạn; cần thiết kế kiểm tra session riêng nếu hệ thống yêu cầu thu hồi tức thời.
+
+## Nhóm khám phá của món
+
+- Thực đơn → Thêm món có khu vực **Nhóm khám phá** (checkbox, tải động từ `discovery_categories` với `kind = 'food'` và `is_active`). Mỗi thẻ món có nút **Phân loại khám phá** và nhãn nhóm hiện có.
+- API: `GET /api/admin/discovery-groups`, `GET|PUT /api/admin/foods/:foodId/discovery-groups`, `GET /api/admin/discovery-links?restaurantId=`.
+- **Bắt buộc cài một lần** trước khi lưu được: chạy `docs/sql/admin_set_food_discovery_groups.sql` trong Supabase SQL editor (RPC `admin_set_food_discovery_groups`, chỉ `service_role` gọi được).
