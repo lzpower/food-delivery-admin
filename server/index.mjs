@@ -34,6 +34,4 @@ const db = createClient(url, secretKey, options);
 const port = Number(process.env.PORT || 3001);
 if (!Number.isInteger(port) || port < 1 || port > 65535)
   throw new Error("PORT không hợp lệ.");
-createAdminApp({ authClient, db, admins, media: createMedia(process.env) }).listen(port, "127.0.0.1", () =>
-  console.log(`Admin API listening on port ${port}`),
-);
+createAdminApp({ authClient, db, admins, media: createMedia(process.env) })..listen(port, "0.0.0.0", () =>
